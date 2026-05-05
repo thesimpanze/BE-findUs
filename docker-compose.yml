@@ -52,6 +52,7 @@ services:
     db:
         image: mysql:8.0
         container_name: findmy-db
+        command: --skip-name-resolve
         environment:
             MYSQL_DATABASE: findmy
             MYSQL_USER: findmy_user
