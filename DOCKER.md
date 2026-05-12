@@ -1,6 +1,6 @@
 # Docker Setup untuk BE-findMy
 
-Panduan lengkap untuk menjalankan proyek Laravel dengan Docker.
+Panduan lengkap untuk menjalankan proyek Laravel dengan Docker dan PostgreSQL.
 
 ## Prasyarat
 
@@ -14,11 +14,17 @@ Proyek ini menggunakan beberapa service:
 
 - **app**: Aplikasi Laravel (PHP 8.3-FPM)
 - **nginx**: Web server Nginx
-- **db**: Database MySQL 8.0
+- **db**: Database PostgreSQL 16
 - **redis**: Cache Redis 7
-- **phpmyadmin**: Management tool untuk database
+- **adminer**: Management tool untuk database PostgreSQL
 
 ## Cara Menjalankan
+
+Jika sebelumnya pernah menjalankan stack versi MySQL, hapus container dan volume lama dulu agar data directory PostgreSQL tidak bentrok:
+
+```bash
+docker-compose down -v
+```
 
 ### 1. Setup Awal
 
@@ -36,7 +42,7 @@ docker-compose build
 docker-compose up -d
 
 docker-compose exec app composer install
-docker-compose exec app chmod -R 777 storage bootstrap/cache
+docker-compose exec app chmod -R 775 storage bootstrap/cache
 # Generate app key
 docker-compose exec app php artisan key:generate
 
@@ -50,10 +56,12 @@ docker-compose exec app php artisan db:seed
 ### 2. Akses Aplikasi
 
 - **Aplikasi Laravel**: http://localhost:8000
-- **phpMyAdmin**: http://localhost:8080
-    - Username: `findmy_user`
-    - Password: `findmy_password`
+- **Adminer**: http://localhost:8080
+    - System: `PostgreSQL`
     - Server: `db`
+    - Username: `findmy_user`
+    - Password: `12345`
+    - Database: `findmy`
 
 ### 3. Command Dasar
 
@@ -108,9 +116,9 @@ Edit file `.env` untuk mengubah konfigurasi:
 - `8000`: Aplikasi Laravel
 - `80`: Nginx web server
 - `443`: Nginx HTTPS (belum dikonfigurasi)
-- `3306`: MySQL database
+- `5432`: PostgreSQL database
 - `6379`: Redis
-- `8080`: phpMyAdmin
+- `8080`: Adminer
 
 ## Troubleshooting
 
@@ -136,6 +144,9 @@ docker-compose ps
 
 # Check database logs
 docker-compose logs db
+
+# Check PostgreSQL readiness
+docker-compose exec db pg_isready -U findmy_user -d findmy
 
 # Run migrations
 docker-compose exec app php artisan migrate

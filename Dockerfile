@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     libpng-dev \
     libonig-dev \
+    libpq-dev \
     libxml2-dev \
     zip \
     unzip \
@@ -19,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 # Install PHP extensions
 # (pdo, ctype, json, curl, dan xml dihapus karena sudah bawaan dari php:8.3-fpm)
 RUN docker-php-ext-install \
-    pdo_mysql \
+    pdo_pgsql \
     pdo_sqlite \
     mbstring \
     exif \

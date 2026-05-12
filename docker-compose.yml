@@ -12,12 +12,12 @@ services:
             - APP_ENV=local
             - APP_DEBUG=true
             # - APP_KEY=base64:kkV8v1R8m8t7k5n3m9p2q1r0s9t8u7v6w5x4y3z2a1b0c9d8e7f6g5h4i3j2k1
-            - DB_CONNECTION=mysql
+            - DB_CONNECTION=pgsql
             - DB_HOST=db
-            - DB_PORT=3306
+            - DB_PORT=5432
             - DB_DATABASE=findmy
             - DB_USERNAME=findmy_user
-            - DB_PASSWORD=findmy_password
+            - DB_PASSWORD=12345
             - REDIS_HOST=redis
             - REDIS_PASSWORD=null
             - REDIS_PORT=6379
@@ -48,26 +48,22 @@ services:
         networks:
             - findmy-network
 
-    # MySQL Database
+    # PostgreSQL Database
     db:
-        image: mysql:8.0
+        image: postgres:16-alpine
         container_name: findmy-db
-        command: --skip-name-resolve
         environment:
-            MYSQL_DATABASE: findmy
-            MYSQL_USER: findmy_user
-            MYSQL_PASSWORD: findmy_password
-            MYSQL_ROOT_PASSWORD: root_password
-            MYSQL_INITDB_SKIP_TZINFO: 1
+            POSTGRES_DB: findmy
+            POSTGRES_USER: findmy_user
+            POSTGRES_PASSWORD: 12345
         ports:
-            - "3306:3306"
+            - "5432:5432"
         volumes:
-            - dbdata:/var/lib/mysql
-            - ./storage/logs/mysql:/var/log/mysql
+            - pgdata:/var/lib/postgresql/data
         networks:
             - findmy-network
         healthcheck:
-            test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+            test: ["CMD-SHELL", "pg_isready -U findmy_user -d findmy"]
             timeout: 20s
             retries: 10
 
@@ -86,24 +82,19 @@ services:
             timeout: 3s
             retries: 5
 
-    # phpMyAdmin for database management
-    phpmyadmin:
-        image: phpmyadmin:latest
-        container_name: findmy-phpmyadmin
-        environment:
-            PMA_HOST: db
-            PMA_USER: findmy_user
-            PMA_PASSWORD: findmy_password
-            PMA_ROOT_PASSWORD: root_password
+    # Adminer for database management
+    adminer:
+        image: adminer:latest
+        container_name: findmy-adminer
         ports:
-            - "8080:80"
+            - "8080:8080"
         depends_on:
             - db
         networks:
             - findmy-network
 
 volumes:
-    dbdata:
+    pgdata:
         driver: local
     redisdata:
         driver: local
