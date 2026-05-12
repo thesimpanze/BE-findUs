@@ -40,7 +40,7 @@ if "%1"=="start" (
     docker-compose exec -T app php artisan migrate
     echo [SUCCESS] All services started successfully!
     echo App: http://localhost:8000
-    echo PhpMyAdmin: http://localhost:8080
+    echo Adminer: http://localhost:8080
     goto :eof
 )
 
