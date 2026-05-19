@@ -44,27 +44,27 @@ case "$1" in
         docker-compose exec -T app php artisan key:generate
         print_info "Running migrations..."
         docker-compose exec -T app php artisan migrate
-        print_info "✓ All services started successfully!"
+        print_info "All services started successfully!"
         print_info "App: http://localhost:8000"
-        print_info "PhpMyAdmin: http://localhost:8080"
+        print_info "Adminer: http://localhost:8080"
         ;;
 
     stop)
         print_info "Stopping Docker containers..."
         docker-compose down
-        print_info "✓ Containers stopped"
+        print_info "Containers stopped"
         ;;
 
     restart)
         print_info "Restarting Docker containers..."
         docker-compose restart
-        print_info "✓ Containers restarted"
+        print_info "Containers restarted"
         ;;
 
     rebuild)
         print_info "Rebuilding Docker images..."
         docker-compose build --no-cache
-        print_info "✓ Images rebuilt"
+        print_info "Images rebuilt"
         ;;
 
     clean)
@@ -74,7 +74,7 @@ case "$1" in
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             print_info "Cleaning up..."
             docker-compose down -v
-            print_info "✓ Cleanup completed"
+            print_info "Cleanup completed"
         else
             print_info "Cleanup cancelled"
         fi
