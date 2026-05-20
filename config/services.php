@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'snap_url' => env('MIDTRANS_IS_PRODUCTION', false)
+            ? 'https://app.midtrans.com/snap/v1/transactions'
+            : 'https://app.sandbox.midtrans.com/snap/v1/transactions',
+    ],
+
+    'subscription' => [
+        'premium_price' => env('SUBSCRIPTION_PREMIUM_PRICE', 25000),
+        'payment_expiry_minutes' => env('SUBSCRIPTION_PAYMENT_EXPIRY_MINUTES', 60),
+    ],
+
 ];

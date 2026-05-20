@@ -17,6 +17,11 @@ class Subscription extends Model
     public const PLAN_FREE = 'free';
     public const PLAN_PREMIUM = 'premium';
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_EXPIRED = 'expired';
+    public const STATUS_CANCELLED = 'cancelled';
+
     private const ALLOWED_PLAN_NAMES = [
         self::PLAN_FREE,
         self::PLAN_PREMIUM,
