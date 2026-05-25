@@ -18,6 +18,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Endpoint untuk bergabung dan keluar circle
     Route::post('/circles/join', [CircleController::class, 'join']);
     Route::post('/circles/leave', [CircleController::class, 'leave']);
+
+    // Endpoint untuk update foto profil
+    Route::post('/user/photo', [\App\Http\Controllers\UserController::class, 'updatePhoto']);
 });
 
 require __DIR__.'/auth.php';
