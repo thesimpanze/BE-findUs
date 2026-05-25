@@ -24,6 +24,11 @@ class User extends Authenticatable
         'password',
         'phone',
         'referal_code',
+        'photo',
+    ];
+
+    public static $rules = [
+        'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:3072',
     ];
 
     protected $hidden = [
