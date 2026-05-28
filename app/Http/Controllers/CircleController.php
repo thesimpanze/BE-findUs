@@ -106,4 +106,31 @@ class CircleController extends Controller
             'data'    => $ownCircle
         ], 200);
     }
+
+    /**
+     * Dapatkan daftar anggota dari sebuah Circle.
+     */
+    public function members(Request $request, Circle $circle)
+    {
+        $user = $request->user();
+        
+        // 1. Otorisasi: Pastikan user yang me-request adalah anggota atau owner dari circle tersebut
+        $isMember = $circle->members()->where('user_id', $user->id)->exists();
+        
+        if (!$isMember && $circle->owner_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You are not a member of this circle.'
+            ], 403);
+        }
+        
+        // 2. Ambil data anggota beserta data user-nya
+        $members = $circle->members()->with('user')->get();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil mengambil daftar anggota circle',
+            'data'    => $members
+        ], 200);
+    }
 }

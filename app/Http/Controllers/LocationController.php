@@ -3,34 +3,95 @@
 namespace App\Http\Controllers;
 
 use App\Models\Circle;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
 use App\Http\Requests\UpdateLocationRequest;
+use Carbon\Carbon;
 
 class LocationController extends Controller
 {
     /**
-     * Update lokasi terkini user ke Redis.
-     * Endpoint ini dipanggil secara berkala (high-frequency) oleh aplikasi client.
+     * Hitung jarak dua titik dalam meter menggunakan formula Haversine.
+     */
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // in meters
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+
+    /**
+     * Update lokasi terkini user ke Redis dan DB.
      */
     public function updateLocation(UpdateLocationRequest $request)
     {
         $user = $request->user();
         
-        // Buat array payload data lokasi dan battery
+        $latitude = $request->latitude;
+        $longitude = $request->longitude;
+        $battery = $request->battery;
+        $now = now();
+
+        // 1. Simpan/Update Lokasi Permanen di tabel locations
+        $location = $user->location()->updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'battery' => $battery,
+            ]
+        );
+
+        // 2. Logic History Lokasi (Jarak > 20m ATAU waktu > 5 menit)
+        $lastHistory = $user->locationHistories()->orderBy('recorded_at', 'desc')->first();
+        
+        $shouldSaveHistory = false;
+        
+        if (!$lastHistory) {
+            $shouldSaveHistory = true;
+        } else {
+            $distance = $this->calculateDistance(
+                $lastHistory->latitude, 
+                $lastHistory->longitude, 
+                $latitude, 
+                $longitude
+            );
+            
+            $timeDiffMinutes = $lastHistory->recorded_at->diffInMinutes($now);
+            
+            if ($distance > 20 || $timeDiffMinutes >= 5) {
+                $shouldSaveHistory = true;
+            }
+        }
+
+        if ($shouldSaveHistory) {
+            $user->locationHistories()->create([
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'battery' => $battery,
+                'recorded_at' => $now,
+            ]);
+        }
+
+        // 3. Simpan ke Redis (Cache 5 Menit)
         $payload = [
-            'latitude'   => $request->latitude,
-            'longitude'  => $request->longitude,
-            'battery'    => $request->battery,
-            'updated_at' => now()->toIso8601String(),
+            'latitude'   => $latitude,
+            'longitude'  => $longitude,
+            'battery'    => $battery,
+            'updated_at' => $now->toIso8601String(),
         ];
         
-        // Tentukan key Redis berdasarkan ID user
         $redisKey = "user_location:{$user->id}";
-        
-        // Simpan data ke Redis dengan TTL 300 detik (5 menit)
-        // setex (Set with Expiration): (key, ttl_in_seconds, value)
-        // Jika dalam 5 menit tidak ada update, key akan otomatis dihapus (user dianggap offline)
         Redis::setex($redisKey, 300, json_encode($payload));
         
         return response()->json([
@@ -63,7 +124,10 @@ class LocationController extends Controller
         
         $locations = [];
         
-        // 3. Looping semua user_id untuk mengambil data lokasi dari Redis
+        // Eager load locations untuk fallback
+        $usersWithLocations = User::whereIn('id', $memberIds)->with('location')->get()->keyBy('id');
+
+        // 3. Looping semua user_id untuk mengambil data lokasi dari Redis atau Database
         foreach ($memberIds as $memberId) {
             $redisKey = "user_location:{$memberId}";
             $locationData = Redis::get($redisKey);
@@ -81,12 +145,26 @@ class LocationController extends Controller
                     'last_updated' => $data['updated_at'],
                 ];
             } else {
-                // Jika data null (karena sudah melewati TTL 5 menit atau tidak pernah di-set)
-                // Kembalikan status offline tanpa titik koordinat
-                $locations[] = [
-                    'user_id' => $memberId,
-                    'status'  => 'offline',
-                ];
+                // Fallback: Ambil data dari PostgreSQL (last known location)
+                $userModel = $usersWithLocations->get($memberId);
+                $dbLocation = $userModel ? $userModel->location : null;
+                
+                if ($dbLocation) {
+                    $locations[] = [
+                        'user_id'      => $memberId,
+                        'status'       => 'offline',
+                        'latitude'     => (float) $dbLocation->latitude,
+                        'longitude'    => (float) $dbLocation->longitude,
+                        'battery'      => $dbLocation->battery,
+                        'last_updated' => $dbLocation->updated_at->toIso8601String(),
+                    ];
+                } else {
+                    // Tidak ada di Redis dan tidak ada di DB
+                    $locations[] = [
+                        'user_id' => $memberId,
+                        'status'  => 'offline',
+                    ];
+                }
             }
         }
         

@@ -10,6 +10,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Location;
+use App\Models\LocationHistory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 
@@ -86,6 +88,16 @@ class User extends Authenticatable
     public function memberships(): HasMany
     {
         return $this->hasMany(CircleMember::class);
+    }
+
+    public function location(): HasOne
+    {
+        return $this->hasOne(Location::class);
+    }
+
+    public function locationHistories(): HasMany
+    {
+        return $this->hasMany(LocationHistory::class);
     }
 
     public function subscriptions(): HasMany
