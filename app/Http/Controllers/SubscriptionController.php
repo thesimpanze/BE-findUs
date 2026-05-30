@@ -83,6 +83,8 @@ class SubscriptionController extends Controller
                     'plan_name' => Subscription::PLAN_FREE,
                     'subscription' => $pendingPayment->subscription,
                     'payment' => $pendingPayment,
+                    'snap_token' => $pendingPayment->snap_token,
+                    'redirect_url' => $midtrans->snapRedirectUrl($pendingPayment->snap_token),
                 ],
             ]);
         }
@@ -112,7 +114,7 @@ class SubscriptionController extends Controller
         });
 
         try {
-            $snapToken = $midtrans->createSnapToken($payment->load('user'));
+            $snapTransaction = $midtrans->createSnapTransaction($payment->load('user'));
         } catch (Throwable $exception) {
             Log::error('Failed to create Midtrans subscription payment.', [
                 'user_id' => $user->id,
@@ -144,7 +146,7 @@ class SubscriptionController extends Controller
         }
 
         $payment->update([
-            'snap_token' => $snapToken,
+            'snap_token' => $snapTransaction['token'],
         ]);
 
         return response()->json([
@@ -154,6 +156,8 @@ class SubscriptionController extends Controller
                 'plan_name' => Subscription::PLAN_FREE,
                 'subscription' => $subscription,
                 'payment' => $payment->fresh(),
+                'snap_token' => $snapTransaction['token'],
+                'redirect_url' => $snapTransaction['redirect_url'],
             ],
         ], 201);
     }
