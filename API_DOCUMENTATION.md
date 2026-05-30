@@ -101,6 +101,7 @@ Contoh update location:
 | --- | --- | --- | --- |
 | POST | `/circles/join` | Yes | Join circle memakai referal code |
 | POST | `/circles/leave` | Yes | Keluar dari circle orang lain dan kembali ke circle sendiri |
+| GET | `/circles/{circle}/members` | Yes | Ambil daftar anggota circle beserta data user-nya |
 
 Contoh join circle:
 
