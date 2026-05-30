@@ -38,4 +38,21 @@ class UserController extends Controller
             'user' => $user
         ]);
     }
+
+    /**
+     * Get the authenticated user's profile with relations.
+     */
+    public function getUser(Request $request)
+    {
+        $user = $request->user()->load(['circle', 'memberships.circle']);
+
+        // Check if user is premium
+        $user->is_premium = $user->isPremium();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil mengambil data user',
+            'data' => $user
+        ]);
+    }
 }

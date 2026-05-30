@@ -12,9 +12,7 @@ use App\Http\Controllers\SubscriptionController;
 Route::post('/midtrans/notification', [MidtransNotificationController::class, 'handle']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    Route::get('/user', [\App\Http\Controllers\UserController::class, 'getUser']);
 
     // endpoint untuk cek subscription, upgrade ke premium, dan cancel subscription 
     Route::get('/subscription', [SubscriptionController::class, 'show']);

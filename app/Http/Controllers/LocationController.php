@@ -129,6 +129,10 @@ class LocationController extends Controller
 
         // 3. Looping semua user_id untuk mengambil data lokasi dari Redis atau Database
         foreach ($memberIds as $memberId) {
+            $userModel = $usersWithLocations->get($memberId);
+            $name = $userModel ? $userModel->name : 'Unknown';
+            $photo = $userModel ? $userModel->photo : null;
+            
             $redisKey = "user_location:{$memberId}";
             $locationData = Redis::get($redisKey);
             
@@ -137,7 +141,8 @@ class LocationController extends Controller
                 $data = json_decode($locationData, true);
                 
                 $locations[] = [
-                    'user_id'      => $memberId,
+                    'name'         => $name,
+                    'photo'        => $photo,
                     'status'       => 'online',
                     'latitude'     => (float) $data['latitude'],
                     'longitude'    => (float) $data['longitude'],
@@ -146,12 +151,12 @@ class LocationController extends Controller
                 ];
             } else {
                 // Fallback: Ambil data dari PostgreSQL (last known location)
-                $userModel = $usersWithLocations->get($memberId);
                 $dbLocation = $userModel ? $userModel->location : null;
                 
                 if ($dbLocation) {
                     $locations[] = [
-                        'user_id'      => $memberId,
+                        'name'         => $name,
+                        'photo'        => $photo,
                         'status'       => 'offline',
                         'latitude'     => (float) $dbLocation->latitude,
                         'longitude'    => (float) $dbLocation->longitude,
@@ -161,8 +166,9 @@ class LocationController extends Controller
                 } else {
                     // Tidak ada di Redis dan tidak ada di DB
                     $locations[] = [
-                        'user_id' => $memberId,
-                        'status'  => 'offline',
+                        'name'   => $name,
+                        'photo'  => $photo,
+                        'status' => 'offline',
                     ];
                 }
             }
