@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\Subscription;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -117,8 +118,17 @@ class User extends Authenticatable
             ->latestOfMany();
     }
 
+    public function activePremiumSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->where('plan_name', Subscription::PLAN_PREMIUM)
+            ->where('status', 'active')
+            ->where('expired_at', '>', now())
+            ->latestOfMany();
+    }
+
     public function isPremium(): bool
     {
-        return $this->activeSubscription()->exists();
+        return $this->activePremiumSubscription()->exists();
     }
 }
