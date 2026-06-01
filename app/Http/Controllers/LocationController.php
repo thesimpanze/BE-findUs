@@ -179,4 +179,74 @@ class LocationController extends Controller
             'data'      => $locations
         ]);
     }
+
+    /**
+     * Dapatkan riwayat lokasi dari semua anggota di dalam sebuah Circle.
+     * Hanya bisa diakses oleh user Premium.
+     */
+    public function getCircleLocationHistory(Request $request, Circle $circle)
+    {
+        $user = $request->user();
+
+        // 1. Cek Premium
+        if (!$user->isPremium()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Premium feature. Please upgrade your subscription to access location history.'
+            ], 403);
+        }
+
+        // 2. Otorisasi: Pastikan user yang me-request adalah anggota atau owner dari circle tersebut
+        $isMember = $circle->members()->where('user_id', $user->id)->exists();
+        
+        if (!$isMember && $circle->owner_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You are not a member of this circle.'
+            ], 403);
+        }
+
+        // 3. Kumpulkan semua user_id yang ada di circle ini (members + owner)
+        $memberIds = $circle->members()->pluck('user_id')->toArray();
+        if (!in_array($circle->owner_id, $memberIds)) {
+            $memberIds[] = $circle->owner_id;
+        }
+
+        // Ambil range waktu (opsional) misal 7 hari terakhir, atau ambil limit tertentu
+        // Untuk saat ini kita ambil history misal 24 jam terakhir atau limit per user
+        // Karena data bisa banyak, kita ambil misal 50 data terakhir per user atau difilter per tanggal
+        
+        $users = User::whereIn('id', $memberIds)
+            ->with(['locationHistories' => function ($query) {
+                // Ambil history dari 7 hari terakhir agar tidak terlalu banyak
+                $query->where('recorded_at', '>=', now()->subDays(7))
+                      ->orderBy('recorded_at', 'desc');
+            }])
+            ->get();
+
+        $historyData = [];
+
+        foreach ($users as $member) {
+            $historyData[] = [
+                'user_id' => $member->id,
+                'name'    => $member->name,
+                'photo'   => $member->photo,
+                'history' => $member->locationHistories->map(function ($history) {
+                    return [
+                        'latitude'    => $history->latitude,
+                        'longitude'   => $history->longitude,
+                        'battery'     => $history->battery,
+                        'recorded_at' => $history->recorded_at->toIso8601String(),
+                    ];
+                })
+            ];
+        }
+
+        return response()->json([
+            'success'   => true,
+            'message'   => 'Location history retrieved successfully',
+            'circle_id' => $circle->id,
+            'data'      => $historyData
+        ]);
+    }
 }

@@ -26,6 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Endpoint untuk update dan ambil lokasi real-time
     Route::post('/location', [LocationController::class, 'updateLocation']);
     Route::get('/circles/{circle}/locations', [LocationController::class, 'getCircleLocations']);
+    Route::get('/circles/{circle}/location-history', [LocationController::class, 'getCircleLocationHistory']);
 
     // Endpoint untuk bergabung dan keluar circle
     Route::post('/circles/join', [CircleController::class, 'join']);
