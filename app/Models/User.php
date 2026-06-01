@@ -14,6 +14,7 @@ use App\Models\Location;
 use App\Models\LocationHistory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class User extends Authenticatable
 {
@@ -49,6 +50,16 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * Get the user's photo with full URL.
+     */
+    protected function photo(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value ? "http://32.236.92.70:8000/storage/" . $value : null,
+        );
     }
 
     /**

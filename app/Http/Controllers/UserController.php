@@ -20,8 +20,9 @@ class UserController extends Controller
         $user = $request->user();
 
         // Check if user already has a photo and delete it from storage
-        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
-            Storage::disk('public')->delete($user->photo);
+        $oldPhoto = $user->getRawOriginal('photo');
+        if ($oldPhoto && Storage::disk('public')->exists($oldPhoto)) {
+            Storage::disk('public')->delete($oldPhoto);
         }
 
         // Store the new photo
