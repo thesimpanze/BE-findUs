@@ -20,8 +20,9 @@ class UserController extends Controller
         $user = $request->user();
 
         // Check if user already has a photo and delete it from storage
-        if ($user->photo && Storage::disk('public')->exists($user->photo)) {
-            Storage::disk('public')->delete($user->photo);
+        $oldPhoto = $user->getRawOriginal('photo');
+        if ($oldPhoto && Storage::disk('public')->exists($oldPhoto)) {
+            Storage::disk('public')->delete($oldPhoto);
         }
 
         // Store the new photo
@@ -52,6 +53,28 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Berhasil mengambil data user',
+            'data' => $user
+        ]);
+    }
+
+    /**
+     * Update the authenticated user's profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
             'data' => $user
         ]);
     }

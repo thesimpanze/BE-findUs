@@ -35,6 +35,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Endpoint untuk update foto profil
     Route::post('/user/photo', [\App\Http\Controllers\UserController::class, 'updatePhoto']);
+    Route::put('/user', [\App\Http\Controllers\UserController::class, 'updateProfile']);
 });
 
 require __DIR__.'/auth.php';
