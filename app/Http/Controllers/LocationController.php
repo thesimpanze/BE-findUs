@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redis;
 use App\Http\Requests\UpdateLocationRequest;
+use App\Jobs\ProcessReverseGeocoding;
 use Carbon\Carbon;
 
 class LocationController extends Controller
@@ -94,6 +95,9 @@ class LocationController extends Controller
         $redisKey = "user_location:{$user->id}";
         Redis::setex($redisKey, 300, json_encode($payload));
         
+        // 4. Dispatch Job untuk Reverse Geocoding secara Asynchronous
+        ProcessReverseGeocoding::dispatch($user, $latitude, $longitude, $now, $shouldSaveHistory);
+
         return response()->json([
             'message' => 'Location updated successfully',
             'data'    => $payload
@@ -146,6 +150,7 @@ class LocationController extends Controller
                     'status'       => 'online',
                     'latitude'     => (float) $data['latitude'],
                     'longitude'    => (float) $data['longitude'],
+                    'address'      => $data['address'] ?? null,
                     'battery'      => $data['battery'] ?? null,
                     'last_updated' => $data['updated_at'],
                 ];
@@ -160,6 +165,7 @@ class LocationController extends Controller
                         'status'       => 'offline',
                         'latitude'     => (float) $dbLocation->latitude,
                         'longitude'    => (float) $dbLocation->longitude,
+                        'address'      => $dbLocation->address,
                         'battery'      => $dbLocation->battery,
                         'last_updated' => $dbLocation->updated_at->toIso8601String(),
                     ];
@@ -235,6 +241,7 @@ class LocationController extends Controller
                     return [
                         'latitude'    => $history->latitude,
                         'longitude'   => $history->longitude,
+                        'address'     => $history->address,
                         'battery'     => $history->battery,
                         'recorded_at' => $history->recorded_at->toIso8601String(),
                     ];
