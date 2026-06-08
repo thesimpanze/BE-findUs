@@ -16,6 +16,7 @@ class LocationHistory extends Model
         'user_id',
         'latitude',
         'longitude',
+        'address',
         'battery',
         'recorded_at',
     ];
