@@ -45,11 +45,7 @@ class CircleController extends Controller
             ], 400);
         }
         
-        // 4. Keluarkan user dari SEMUA circle yang ia ikuti saat ini (termasuk circle miliknya sendiri)
-        // Hal ini menjamin bahwa user hanya aktif di satu circle pada satu waktu
-        CircleMember::where('user_id', $user->id)->delete();
-        
-        // 5. Tambahkan user sebagai member baru di circle tujuan
+        // 4. Tambahkan user sebagai member baru di circle tujuan
         CircleMember::create([
             'circle_id' => $circle->id,
             'user_id'   => $user->id,
@@ -59,51 +55,67 @@ class CircleController extends Controller
         ]);
         
         return response()->json([
-            'message' => 'Berhasil bergabung ke Circle baru. Anda telah keluar dari Circle sebelumnya.',
+            'message' => 'Berhasil bergabung ke Circle.',
             'data'    => $circle
         ], 200);
     }
 
     /**
-     * Keluar dari circle orang lain dan otomatis kembali ke circle milik sendiri.
+     * Keluar dari circle.
      */
-    public function leave(Request $request)
+    public function leave(Request $request, Circle $circle)
     {
         $user = $request->user();
         
-        // 1. Cari circle milik user ini sendiri
-        $ownCircle = Circle::where('owner_id', $user->id)->first();
-        
-        if (!$ownCircle) {
+        // Cek apakah user adalah owner dari circle tersebut
+        if ($circle->owner_id === $user->id) {
             return response()->json([
-                'message' => 'Anda tidak memiliki Circle sendiri untuk kembali. Silakan buat Circle terlebih dahulu.'
-            ], 404);
+                'message' => 'Anda adalah pemilik dari Circle ini. Anda tidak dapat keluar dari Circle milik sendiri.'
+            ], 400);
         }
 
-        // 2. Cek keanggotaan saat ini
-        $currentMembership = CircleMember::where('user_id', $user->id)->first();
+        // Cek keanggotaan saat ini
+        $currentMembership = CircleMember::where('user_id', $user->id)
+                                         ->where('circle_id', $circle->id)
+                                         ->first();
 
-        if ($currentMembership && $currentMembership->circle_id === $ownCircle->id) {
+        if (!$currentMembership) {
             return response()->json([
-                'message' => 'Anda sudah berada di dalam Circle Anda sendiri.'
+                'message' => 'Anda tidak berada di dalam Circle ini.'
             ], 400);
         }
         
-        // 3. Hapus semua keanggotaan dari circle manapun (keluar dari circle orang lain)
-        CircleMember::where('user_id', $user->id)->delete();
-        
-        // 4. Masukkan user kembali ke circlenya sendiri
-        CircleMember::create([
-            'circle_id' => $ownCircle->id,
-            'user_id'   => $user->id,
-            'role'      => 'ketua guild',
-            'status'    => 'active',
-            'joined_at' => now(),
-        ]);
+        // Hapus keanggotaan dari circle tersebut
+        $currentMembership->delete();
         
         return response()->json([
-            'message' => 'Berhasil keluar dari Circle orang lain dan Anda telah otomatis masuk kembali ke Circle Anda sendiri.',
-            'data'    => $ownCircle
+            'message' => 'Berhasil keluar dari Circle.',
+        ], 200);
+    }
+
+    /**
+     * Update nama circle.
+     */
+    public function update(\App\Http\Requests\UpdateCircleRequest $request, Circle $circle)
+    {
+        $user = $request->user();
+
+        // Hanya owner yang bisa mengubah nama circle
+        if ($circle->owner_id !== $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. Only the owner can update the circle name.'
+            ], 403);
+        }
+
+        $circle->update([
+            'name' => $request->name
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil memperbarui nama circle.',
+            'data'    => $circle
         ], 200);
     }
 
