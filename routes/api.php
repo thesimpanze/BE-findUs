@@ -28,7 +28,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/circles/{circle}/locations', [LocationController::class, 'getCircleLocations']);
     Route::get('/circles/{circle}/location-history', [LocationController::class, 'getCircleLocationHistory']);
 
-    // Endpoint untuk bergabung, keluar, dan update circle
+    // Endpoint untuk circle (create, join, leave, update, dan daftar member)
+    Route::post('/circles', [CircleController::class, 'store']);
     Route::post('/circles/join', [CircleController::class, 'join']);
     Route::post('/circles/{circle}/leave', [CircleController::class, 'leave']);
     Route::put('/circles/{circle}', [CircleController::class, 'update']);

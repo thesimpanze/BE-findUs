@@ -10,6 +10,42 @@ use App\Http\Requests\JoinCircleRequest;
 class CircleController extends Controller
 {
     /**
+     * Membuat Circle baru.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+
+        do {
+            $code = strtoupper(\Illuminate\Support\Str::random(5));
+        } while (Circle::where('referal_code', $code)->exists());
+
+        $circle = Circle::create([
+            'name'         => $request->name,
+            'owner_id'     => $user->id,
+            'referal_code' => $code,
+        ]);
+
+        CircleMember::create([
+            'circle_id' => $circle->id,
+            'user_id'   => $user->id,
+            'role'      => 'ketua guild',
+            'status'    => 'active',
+            'joined_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Berhasil membuat Circle baru.',
+            'data'    => $circle
+        ], 201);
+    }
+
+    /**
      * Bergabung ke sebuah Circle menggunakan kode referal.
      * Mengeluarkan user dari Circle manapun sebelumnya (termasuk miliknya sendiri).
      */
